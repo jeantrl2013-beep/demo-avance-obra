@@ -95,6 +95,10 @@ function armarDatos(t, ahoraTxt, cfg) {
       revisar.push(item('sin-fase', reg, 'El registro no tiene fase: no suma al avance.'));
     } else if (p == null) {
       revisar.push(item('sin-pct', reg, 'Fase ' + f.orden + ' sin porcentaje de avance: cuenta como 0%.'));
+    } else if (p === 1 && estado && estado !== 'Terminada') {
+      // Un 1 se lee como 100%. Si el estado no dice Terminada, quiza quisieron poner 1%.
+      revisar.push(item('pct-100', reg, 'Fase ' + f.orden + ' con 100% de avance pero estado "' + estado +
+                        '": revisa si quisieron poner 1%.'));
     }
     if (reg.distM != null && reg.distM > cfg.GPS_TOLERANCIA_M) {
       revisar.push(item('gps', reg, 'El GPS del registro esta a ' + formatoDist(reg.distM) +
@@ -134,7 +138,9 @@ function armarDatos(t, ahoraTxt, cfg) {
     var inicio = esps.some(function (e) { return u.esp[e].max > 0; });
     var todo = esps.every(function (e) { return u.esp[e].avance >= 1; });
     u.estado = !inicio ? 'sin' : (todo ? 'concluida' : 'curso');
-    u.ultima = rs.length ? rs[rs.length - 1].fecha : null;
+    // Ultimo trabajo = ultimo registro CON fase: una visita sin fase no cuenta como trabajo.
+    var conFase = rs.filter(function (x) { return x.orden != null; });
+    u.ultima = conFase.length ? conFase[conFase.length - 1].fecha : null;
     u.diasSin = u.ultima ? diasEntre(u.ultima, hoy) : null;
     var conFoto = rs.filter(function (x) { return x.foto; });
     u.foto = conFoto.length ? conFoto[conFoto.length - 1].id : null;
